@@ -1,0 +1,23 @@
+---
+- name: Create postrgres db user, set password and grant privs
+  postgresql_user:
+    name={{ item.value.user }}
+    password={{ item.value.pass }}
+    role_attr_flags=CREATEDB,NOSUPERUSER,INHERIT,NOCREATEROLE
+    login_user=postgres
+  with_dict: "{{ databases }}"
+  become: true
+  become_user: postgres
+
+- name: Create postgreSQL Db
+  postgresql_db:
+    name={{ item.value.name }}
+    encoding={{ db_postgres_encoding }}
+    lc_collate={{ db_postgres_LC_COLLATE }}
+    lc_ctype={{ db_postgres_LC_CTYPE }}
+    owner={{ item.value.user }}
+    state=present
+  with_dict: "{{ databases }}"
+  become: true
+  become_user: postgres
+

@@ -1,0 +1,31 @@
+---
+- name: Adding new line for enabling MD5 authentication method for postgreSQL
+  lineinfile:
+    path: "/var/lib/pgsql/{{postgresql_version}}/data/pg_hba.conf"
+    regexp: "^# IPv4 local connections:"
+    insertafter: "# IPv4 local connections:"
+    line: host    all        all          all     md5
+  when: ansible_os_family == "RedHat"
+
+- name: Editing the listen address
+  lineinfile:
+    path: "/var/lib/pgsql/{{postgresql_version}}/data/postgresql.conf"
+    regexp: "^#listen_addresses"
+    line: listen_addresses='*'
+  when: ansible_os_family == "RedHat"
+
+- name: Add new configuration to "pg_hba.conf"
+  blockinfile:
+    dest: /etc/postgresql/10/main/pg_hba.conf
+    block: |
+     local    all        all       peer
+    state: present
+  when: ansible_os_family == "Debian"
+
+
+- name: Enable and start postgresql service on reboot
+  service:
+    name: "postgresql-{{postgresql_version}}"
+    state: started
+    enabled: yes
+

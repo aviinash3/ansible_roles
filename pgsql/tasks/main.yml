@@ -1,0 +1,12 @@
+---
+# tasks file for pgsql
+
+- import_tasks: addpg_repo.yml
+- import_tasks:  install_psql.yml
+- import_tasks: initpg_db.yml
+- import_tasks:  backup_config.yml
+- import_tasks: seting_config.yml
+- import_tasks:  create_db.yml
+- import_tasks:  collection.yml
+
+

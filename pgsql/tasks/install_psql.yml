@@ -1,0 +1,11 @@
+---
+
+- name: Installing postgresql package in redhat
+  yum:
+    name: 
+      - "postgresql{{postgresql_version}}-server"
+      - python-psycopg2
+    state: present
+  when: ansible_os_family == "RedHat"
+
+

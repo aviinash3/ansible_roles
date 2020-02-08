@@ -1,0 +1,13 @@
+---
+- name: Check if PostgreSQL database is initialized.
+  stat:
+    path: "{{ psql_data_dir }}"
+  register: pgdata_dir_version
+
+- name: Initiate database
+  command: "/usr/pgsql-{{postgresql_version}}/bin/postgresql-{{postgresql_version}}-setup initdb"
+  when: 
+    - ansible_os_family == "RedHat"
+    - not pgdata_dir_version.stat.exists
+      # ignore_errors: true
+

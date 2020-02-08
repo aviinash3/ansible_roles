@@ -1,0 +1,62 @@
+---
+- name: Create test_table in the rman database
+  postgresql_table:
+    db: rman
+    name: role1
+    columns:
+      - id serial primary key
+      - city VARCHAR (255) UNIQUE NOT NULL 
+    owner: rman
+    login_user: rman
+    login_password: RMANDB_PASSWORD
+    login_host: centosabc10.com
+  become_user: postgres
+  register: create
+
+- debug:
+    var: create
+
+
+- name: Insert query to test_table in rman db
+  postgresql_query:
+    db: rman
+    query: INSERT INTO role1 (role_id,city) VALUES (4,'bhopal')
+    login_user: rman
+    login_password: RMANDB_PASSWORD
+    login_host: centosabc10.com
+  become_user: postgres
+  register: insert
+
+- debug:
+    var: insert
+
+
+
+- name: Select query to test_db with named_args
+  postgresql_query:
+    db: rman
+    query: SELECT * FROM role1 WHERE role_id = %(id_val)s 
+    named_args:
+      id_val: 1
+    login_user: rman
+    login_password: RMANDB_PASSWORD
+    login_host: centosabc10.com
+  become_user: postgres
+  register: show
+
+
+- debug:
+    var: show
+
+- name: show collection in database rman
+  postgresql_query:
+    db: rman
+    query: SELECT * FROM role1
+    login_user: rman
+    login_password: RMANDB_PASSWORD
+    login_host: centosabc10.com
+  become_user: postgres
+  register: showall
+
+- debug: 
+    var: showall

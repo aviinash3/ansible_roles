@@ -1,0 +1,17 @@
+---
+- name: Backup postgresql config file in redhat
+  copy:
+    src: "/var/lib/pgsql/{{postgresql_version}}/data/postgresql.conf"
+    dest: "/var/lib/pgsql/{{postgresql_version}}/data/postgresql.conf-orig"
+    remote_src: true
+    force: false
+  when: ansible_os_family == "RedHat"
+
+- name: Backup pg_hba config file in redhat
+  copy:
+    src: "/var/lib/pgsql/{{postgresql_version}}/data/pg_hba.conf"
+    dest: "/var/lib/pgsql/{{postgresql_version}}/data/pg_hba.conf-orig"
+    remote_src: true
+    force: false
+  when: ansible_os_family == "RedHat"
+

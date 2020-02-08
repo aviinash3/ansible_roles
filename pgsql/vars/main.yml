@@ -1,0 +1,23 @@
+---
+# vars file for pgsql
+
+
+postgresql_version: "12"
+psql_data_dir: /var/lib/pgsql/{{postgresql_version}}/data/
+
+
+
+databases:
+  rman:
+    name: 'rman'
+    user: 'rman'
+    pass: 'RMANDB_PASSWORD'
+
+
+db_postgres_encoding: 'UTF-8'
+db_postgres_tablespace: 'pg_default'
+db_postgres_LC_COLLATE: "{{ item.lc_collate | default(omit) }}" 
+db_postgres_LC_CTYPE: "{{ item.lc_ctype | default(omit) }}"
+db_postgres_CONNECTION_LIMIT: '-1'
+item.value.user: admin 
+item.value.pass: admin
