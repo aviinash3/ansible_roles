@@ -1,54 +1,51 @@
-@echo off
-SETLOCAL ENABLEEXTENSIONS
+$ErrorActionPreference = "Stop"
 
-REM -----------------------------
-REM Configuration
-REM -----------------------------
-SET RESOURCE_GROUP=rg-dev-testing
-SET APIM_NAME=my-apim
-SET PRODUCT_NAME=Unlimited
+# -----------------------------
+# Configuration
+# -----------------------------
+$ResourceGroup = "rg-dev-testing"
+$ApimName      = "my-apim"
+$ProductName   = "Unlimited"
 
-echo Ensuring APIM product "%PRODUCT_NAME%" exists...
+Write-Host "Ensuring APIM product '$ProductName' exists..."
 
-REM -----------------------------
-REM Check if product exists
-REM -----------------------------
-az apim product show ^
-  --resource-group "%RESOURCE_GROUP%" ^
-  --service-name "%APIM_NAME%" ^
-  --product-name "%PRODUCT_NAME%" >nul 2>&1
+# -----------------------------
+# Ensure Azure CLI is logged in
+# -----------------------------
+az account show | Out-Null
 
-IF ERRORLEVEL 1 GOTO CREATE
+# -----------------------------
+# Check if product exists
+# -----------------------------
+$exists = $true
+try {
+    az apim product show `
+        --resource-group $ResourceGroup `
+        --service-name $ApimName `
+        --product-name $ProductName | Out-Null
+}
+catch {
+    $exists = $false
+}
 
-REM -----------------------------
-REM Update existing product
-REM -----------------------------
-echo Product exists ^> updating
-az apim product update ^
-  --resource-group "%RESOURCE_GROUP%" ^
-  --service-name "%APIM_NAME%" ^
-  --product-name "%PRODUCT_NAME%" ^
-  --state published
+# -----------------------------
+# Create or Update
+# -----------------------------
+if ($exists) {
+    Write-Host "Product exists → updating"
+    az apim product update `
+        --resource-group $ResourceGroup `
+        --service-name $ApimName `
+        --product-name $ProductName `
+        --state published
+}
+else {
+    Write-Host "Product does not exist → creating"
+    az apim product create `
+        --resource-group $ResourceGroup `
+        --service-name $ApimName `
+        --product-name $ProductName `
+        --state published
+}
 
-IF ERRORLEVEL 1 GOTO FAIL
-GOTO END
-
-:CREATE
-echo Product does not exist ^> creating
-az apim product create ^
-  --resource-group "%RESOURCE_GROUP%" ^
-  --service-name "%APIM_NAME%" ^
-  --product-name "%PRODUCT_NAME%" ^
-  --state published
-
-IF ERRORLEVEL 1 GOTO FAIL
-GOTO END
-
-:FAIL
-echo ERROR: Failed to ensure APIM product
-EXIT /B 1
-
-:END
-echo APIM product "%PRODUCT_NAME%" ensured successfully.
-ENDLOCAL
-EXIT /B 0
+Write-Host "APIM product '$ProductName' ensured successfully."
