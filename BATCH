@@ -1,51 +1,82 @@
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 # -----------------------------
 # Configuration
 # -----------------------------
-$ResourceGroup = "rg-dev-testing"
-$ApimName      = "my-apim"
-$ProductName   = "Unlimited"
+$ResourceGroup = "rg-eastus-dev"
+$ApimName      = "wb-apim-eastus-dev"
 
-Write-Host "Ensuring APIM product '$ProductName' exists..."
+$ApiId        = "clearingdocumentsapi"
+$ApiPath      = "clearingdocumentsapi"
+$DisplayName  = "Wedbush.ClearingDocuments.API"
+
+$SwaggerPath  = "$env:AGENT_RELEASEDIRECTORY/_wedbush-securities.ClearingDocumentsAPI/swagger/swagger.json"
+
+$BackendUrl   = "https://ingress.dev.aks.wsi.internal/clearingdocumentsapi"
+
+Write-Host "Ensuring APIM API '$ApiId' exists..."
 
 # -----------------------------
-# Ensure Azure CLI is logged in
+# Auth check
 # -----------------------------
-az account show | Out-Null
-
-# -----------------------------
-# Check if product exists
-# -----------------------------
-$exists = $true
-try {
-    az apim product show `
-        --resource-group $ResourceGroup `
-        --service-name $ApimName `
-        --product-name $ProductName | Out-Null
-}
-catch {
-    $exists = $false
+az account show > $null 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Azure CLI not authenticated"
+    exit 255
 }
 
 # -----------------------------
-# Create or Update
+# Import / Update API (idempotent)
 # -----------------------------
-if ($exists) {
-    Write-Host "Product exists → updating"
-    az apim product update `
-        --resource-group $ResourceGroup `
-        --service-name $ApimName `
-        --product-name $ProductName `
-        --state published
-}
-else {
-    Write-Host "Product does not exist → creating"
-    az apim product create `
-        --resource-group $ResourceGroup `
-        --service-name $ApimName `
-        --product-name $ProductName `
-        --state published
+az apim api import `
+  --resource-group $ResourceGroup `
+  --service-name $ApimName `
+  --api-id $ApiId `
+  --path $ApiPath `
+  --display-name $DisplayName `
+  --specification-format OpenApiJson `
+  --specification-path $SwaggerPath `
+  --subscription-required false `
+  --api-type http
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to import or update API"
+    exit $LASTEXITCODE
 }
 
-Write-Host "APIM product '$ProductName' ensured successfully."
+Write-Host "API imported or updated successfully."
+
+# -----------------------------
+# Apply API Policy
+# -----------------------------
+$PolicyXml = @"
+<policies>
+  <inbound>
+    <base />
+    <set-backend-service base-url="$BackendUrl" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>
+"@
+
+az apim api policy create-or-update `
+  --resource-group $ResourceGroup `
+  --service-name $ApimName `
+  --api-id $ApiId `
+  --xml-content $PolicyXml
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to apply API policy"
+    exit $LASTEXITCODE
+}
+
+Write-Host "API policy applied successfully."
+exit 0
