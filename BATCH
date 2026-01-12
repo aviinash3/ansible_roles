@@ -10,6 +10,18 @@ SET PRODUCT_NAME=Unlimited
 
 echo Ensuring APIM product "%PRODUCT_NAME%" exists...
 
+@echo off
+SETLOCAL ENABLEEXTENSIONS
+
+REM -----------------------------
+REM Configuration
+REM -----------------------------
+SET RESOURCE_GROUP=rg-dev-testing
+SET APIM_NAME=my-apim
+SET PRODUCT_NAME=Unlimited
+
+echo Ensuring APIM product "%PRODUCT_NAME%" exists...
+
 REM -----------------------------
 REM Check if product exists
 REM -----------------------------
@@ -18,26 +30,37 @@ az apim product show ^
   --service-name "%APIM_NAME%" ^
   --product-name "%PRODUCT_NAME%" >nul 2>&1
 
-IF %ERRORLEVEL% EQU 0 (
-    echo Product exists ^> updating
-    az apim product update ^
-      --resource-group "%RESOURCE_GROUP%" ^
-      --service-name "%APIM_NAME%" ^
-      --product-name "%PRODUCT_NAME%" ^
-      --state published
-) ELSE (
-    echo Product does not exist ^> creating
-    az apim product create ^
-      --resource-group "%RESOURCE_GROUP%" ^
-      --service-name "%APIM_NAME%" ^
-      --product-name "%PRODUCT_NAME%" ^
-      --state published
-)
+IF ERRORLEVEL 1 GOTO CREATE
 
-IF %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Failed to ensure APIM product
-    EXIT /B 1
-)
+REM -----------------------------
+REM Update existing product
+REM -----------------------------
+echo Product exists ^> updating
+az apim product update ^
+  --resource-group "%RESOURCE_GROUP%" ^
+  --service-name "%APIM_NAME%" ^
+  --product-name "%PRODUCT_NAME%" ^
+  --state published
 
+IF ERRORLEVEL 1 GOTO FAIL
+GOTO END
+
+:CREATE
+echo Product does not exist ^> creating
+az apim product create ^
+  --resource-group "%RESOURCE_GROUP%" ^
+  --service-name "%APIM_NAME%" ^
+  --product-name "%PRODUCT_NAME%" ^
+  --state published
+
+IF ERRORLEVEL 1 GOTO FAIL
+GOTO END
+
+:FAIL
+echo ERROR: Failed to ensure APIM product
+EXIT /B 1
+
+:END
 echo APIM product "%PRODUCT_NAME%" ensured successfully.
 ENDLOCAL
+EXIT /B 0
