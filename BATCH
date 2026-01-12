@@ -1,82 +1,38 @@
-$ErrorActionPreference = "Continue"
+@echo off
+SETLOCAL ENABLEEXTENSIONS
 
-# -----------------------------
-# Configuration
-# -----------------------------
-$ResourceGroup = "rg-eastus-dev"
-$ApimName      = "wb-apim-eastus-dev"
+REM -----------------------------
+REM Configuration
+REM -----------------------------
+SET RESOURCE_GROUP=rg-eastus-dev
+SET APIM_NAME=wb-apim-eastus-dev
+SET API_ID=clearingdocumentsapi
+SET BACKEND_URL=https://ingress.dev.aks.wsi.internal/clearingdocumentsapi
 
-$ApiId        = "clearingdocumentsapi"
-$ApiPath      = "clearingdocumentsapi"
-$DisplayName  = "Wedbush.ClearingDocuments.API"
+echo Applying API policy for "%API_ID%"...
 
-$SwaggerPath  = "$env:AGENT_RELEASEDIRECTORY/_wedbush-securities.ClearingDocumentsAPI/swagger/swagger.json"
+REM -----------------------------
+REM Auth check
+REM -----------------------------
+az account show >nul 2>&1
+IF ERRORLEVEL 1 (
+  echo ERROR: Azure CLI not authenticated
+  EXIT /B 255
+)
 
-$BackendUrl   = "https://ingress.dev.aks.wsi.internal/clearingdocumentsapi"
+REM -----------------------------
+REM Apply API policy (INLINE)
+REM -----------------------------
+az apim api policy set ^
+  --resource-group "%RESOURCE_GROUP%" ^
+  --service-name "%APIM_NAME%" ^
+  --api-id "%API_ID%" ^
+  --xml-content "<policies><inbound><base /><set-backend-service base-url=\"%BACKEND_URL%\" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>"
 
-Write-Host "Ensuring APIM API '$ApiId' exists..."
+IF ERRORLEVEL 1 (
+  echo ERROR: Failed to apply API policy
+  EXIT /B 1
+)
 
-# -----------------------------
-# Auth check
-# -----------------------------
-az account show > $null 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Azure CLI not authenticated"
-    exit 255
-}
-
-# -----------------------------
-# Import / Update API (idempotent)
-# -----------------------------
-az apim api import `
-  --resource-group $ResourceGroup `
-  --service-name $ApimName `
-  --api-id $ApiId `
-  --path $ApiPath `
-  --display-name $DisplayName `
-  --specification-format OpenApiJson `
-  --specification-path $SwaggerPath `
-  --subscription-required false `
-  --api-type http
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Failed to import or update API"
-    exit $LASTEXITCODE
-}
-
-Write-Host "API imported or updated successfully."
-
-# -----------------------------
-# Apply API Policy
-# -----------------------------
-$PolicyXml = @"
-<policies>
-  <inbound>
-    <base />
-    <set-backend-service base-url="$BackendUrl" />
-  </inbound>
-  <backend>
-    <base />
-  </backend>
-  <outbound>
-    <base />
-  </outbound>
-  <on-error>
-    <base />
-  </on-error>
-</policies>
-"@
-
-az apim api policy create-or-update `
-  --resource-group $ResourceGroup `
-  --service-name $ApimName `
-  --api-id $ApiId `
-  --xml-content $PolicyXml
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Failed to apply API policy"
-    exit $LASTEXITCODE
-}
-
-Write-Host "API policy applied successfully."
-exit 0
+echo API policy applied successfully.
+EXIT /B 0
