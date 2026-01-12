@@ -1,16 +1,4 @@
 @echo off
-SETLOCAL ENABLEEXTENSIONS ENABLEDELAYEDEXPANSION
-
-REM -----------------------------
-REM Configuration
-REM -----------------------------
-SET RESOURCE_GROUP=rg-dev-testing
-SET APIM_NAME=my-apim
-SET PRODUCT_NAME=Unlimited
-
-echo Ensuring APIM product "%PRODUCT_NAME%" exists...
-
-@echo off
 SETLOCAL ENABLEEXTENSIONS
 
 REM -----------------------------
