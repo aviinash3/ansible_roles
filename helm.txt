@@ -22,7 +22,32 @@ This project implements a standardized, low-touch deployment mechanism using **H
 > At this stage, all required repository changes were completed.
 
 ---
+Repository and Azure Pipeline Changes
+Azure Pipeline Configuration
 
+As part of the repository changes, Azure Pipeline steps were added to dynamically update deployment configurations during the build/release process.
+
+AppSettings Replacement
+
+A pipeline script replaces placeholders in the Helm values file with environment-specific values sourced from Azure Pipeline variables.
+
+This ensures that no hardcoded values exist in the repository.
+
+Pipeline Step:
+
+displayName: Replacing the Appsettings Files with Azure Config Store Details
+
+Actions performed:
+
+Replace acrregistry placeholder with the value of $(acrregistry)
+
+Replace imagetag placeholder with a dynamically generated tag using environment name and build ID
+
+Artifact Publishing
+
+After updating the values.yml, the manifestsV2 folder is published as a pipeline artifact.
+
+This artifact is later consumed during the release stage for Helm deployment.
 ## Release Pipeline Flow
 
 ### Tool Installation
