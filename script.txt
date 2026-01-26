@@ -1,0 +1,105 @@
+$ErrorActionPreference = "Stop"
+
+# -----------------------------
+# Configuration
+# -----------------------------
+$RESOURCE_GROUP = $env:RG_EASTUS_DEV
+$APIM_NAME      = $env:APIM_EASTUS_DEV
+$API_ID         = $env:DEPLOYMENT_NAME
+$BACKEND_URL    = "$($env:AKS_EASTUS_DEV_BACKEND_URL)/$($env:DEPLOYMENT_NAME)"
+
+Write-Host "Applying API policy for '$API_ID' ..."
+
+# -----------------------------
+# Auth check
+# -----------------------------
+try {
+    az account show | Out-Null
+}
+catch {
+    Write-Error "ERROR: Azure CLI not authenticated"
+    exit 1
+}
+
+# -----------------------------
+# Apply API policy (INLINE)
+# -----------------------------
+$policyXml = @"
+<policies>
+  <inbound>
+    <base />
+    <set-backend-service base-url="$BACKEND_URL" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>
+"@
+
+az apim api policy set `
+  --resource-group $RESOURCE_GROUP `
+  --service-name $APIM_NAME `
+  --api-id $API_ID `
+  --xml-content $policyXml
+
+Write-Host "API policy applied successfully."
+
+
+################################
+################################
+################################
+################################
+#!/usr/bin/env bash
+
+set -e
+
+# -----------------------------
+# Configuration
+# -----------------------------
+RESOURCE_GROUP="$RG_EASTUS_DEV"
+APIM_NAME="$APIM_EASTUS_DEV"
+API_ID="$DEPLOYMENT_NAME"
+BACKEND_URL="$AKS_EASTUS_DEV_BACKEND_URL/$DEPLOYMENT_NAME"
+
+echo "Applying API policy for \"$API_ID\" ..."
+
+# -----------------------------
+# Auth check
+# -----------------------------
+if ! az account show >/dev/null 2>&1; then
+  echo "ERROR: Azure CLI not authenticated"
+  exit 1
+fi
+
+# -----------------------------
+# Apply API policy (INLINE)
+# -----------------------------
+az apim api policy set \
+  --resource-group "$RESOURCE_GROUP" \
+  --service-name "$APIM_NAME" \
+  --api-id "$API_ID" \
+  --xml-content "<policies>
+    <inbound>
+      <base />
+      <set-backend-service base-url=\"$BACKEND_URL\" />
+    </inbound>
+    <backend>
+      <base />
+    </backend>
+    <outbound>
+      <base />
+    </outbound>
+    <on-error>
+      <base />
+    </on-error>
+  </policies>"
+
+echo "API policy applied successfully."
+
+
